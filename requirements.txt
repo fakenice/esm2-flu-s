@@ -1,0 +1,9 @@
+# measured on the machine that produced results/ (Python 3.13, RTX 2080 Ti)
+# torch must be installed from the cu124 index: pip install torch==2.6.0+cu124 --index-url https://download.pytorch.org/whl/cu124
+torch==2.6.0+cu124
+transformers==5.22.2
+scikit-learn==1.9.1
+scipy==1.18.1
+pandas==3.0.3
+numpy==2.3.4
+matplotlib==3.11.0

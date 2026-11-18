@@ -1,0 +1,162 @@
+{
+  "n_train": 20963,
+  "n_valid": 5235,
+  "n_test": 25517,
+  "null_mean": {
+    "spearman": null,
+    "note": "constant prediction; Spearman undefined",
+    "rmse": 1.4666,
+    "n": 25517
+  },
+  "null_nmut": {
+    "spearman": 0.3416,
+    "ci95": [
+      0.3302,
+      0.3524
+    ],
+    "rmse": 7.6178,
+    "n": 25517
+  },
+  "zero_shot": {
+    "spearman": -0.3036,
+    "ci95": [
+      -0.3144,
+      -0.2924
+    ],
+    "rmse": 16.281,
+    "n": 25517
+  },
+  "ridge_alpha": 0.001,
+  "ridge_valid_spearman": 0.703,
+  "ridge": {
+    "spearman": 0.6297,
+    "ci95": [
+      0.6208,
+      0.638
+    ],
+    "rmse": 0.9342,
+    "n": 25517
+  },
+  "mlp_seed0": {
+    "spearman": 0.611,
+    "ci95": [
+      0.6019,
+      0.6192
+    ],
+    "rmse": 0.855,
+    "n": 25517
+  },
+  "mlp_seed1": {
+    "spearman": 0.6108,
+    "ci95": [
+      0.6021,
+      0.6189
+    ],
+    "rmse": 0.8637,
+    "n": 25517
+  },
+  "mlp_seed2": {
+    "spearman": 0.6046,
+    "ci95": [
+      0.596,
+      0.6126
+    ],
+    "rmse": 0.8568,
+    "n": 25517
+  },
+  "mlp_mean3seed": {
+    "spearman": 0.615,
+    "ci95": [
+      0.6063,
+      0.623
+    ],
+    "rmse": 0.8453,
+    "n": 25517
+  },
+  "mlp_ensemble": {
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "per_seed_spearman": [
+      0.611,
+      0.6108,
+      0.6046
+    ],
+    "train_seconds": [
+      1.1,
+      1.2,
+      1.2
+    ],
+    "peak_gpu_MiB": [
+      299.0,
+      299.0,
+      299.0
+    ],
+    "seed_spread": 0.0064
+  },
+  "by_mutation_count": [
+    {
+      "mutations": "4-6",
+      "n": 20510,
+      "zero_shot": -0.2125,
+      "ridge": 0.6927,
+      "mlp": 0.6713
+    },
+    {
+      "mutations": "7-10",
+      "n": 4816,
+      "zero_shot": -0.0464,
+      "ridge": 0.1356,
+      "mlp": 0.1395
+    },
+    {
+      "mutations": "11-15",
+      "n": 191,
+      "zero_shot": 0.072,
+      "ridge": 0.0182,
+      "mlp": 0.0008
+    }
+  ],
+  "zero_shot_subset": {
+    "n": 5000,
+    "wt_vs_masked_spearman_between_scorers": 0.3093
+  },
+  "zero_shot_wt_subset": {
+    "spearman": -0.3187,
+    "ci95": [
+      -0.3435,
+      -0.2936
+    ],
+    "rmse": 16.2113,
+    "n": 5000
+  },
+  "zero_shot_masked_subset": {
+    "spearman": 0.031,
+    "ci95": [
+      0.0014,
+      0.0574
+    ],
+    "rmse": 3.4293,
+    "n": 5000
+  },
+  "ridge_subset": {
+    "spearman": 0.6331,
+    "ci95": [
+      0.613,
+      0.6517
+    ],
+    "rmse": 0.9429,
+    "n": 5000
+  },
+  "mlp_subset": {
+    "spearman": 0.6155,
+    "ci95": [
+      0.5951,
+      0.6343
+    ],
+    "rmse": 0.8505,
+    "n": 5000
+  }
+}

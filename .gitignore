@@ -1,0 +1,8 @@
+# 不随仓库分发：原始数据、模型权重、嵌入缓存（再生成方式见 README「环境」）
+models/
+data/
+results/embed/
+__pycache__/
+*.pyc
+# 内部备忘（简历口径稿），不公开
+一页结论.md
