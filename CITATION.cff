@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: >-
+  如果您使用本仓库或其公开发布的评测结果，请引用以下元数据（README 中另有 BibTeX 条目）。
+title: "esm2-flu-s：ESM2 在 TAPE 荧光蛋白（FLU-S）上的零样本打分 vs 轻量微调可复现基准"
+authors:
+  - family-names: Wu
+    given-names: Yiting
+repository-code: "https://github.com/fakenice/esm2-flu-s"
+url: "https://github.com/fakenice/esm2-flu-s"
+version: "1.0"
+date-released: "2026-11-18"

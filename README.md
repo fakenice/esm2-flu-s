@@ -138,3 +138,17 @@ python src/make_figures.py                  # README 四张图（断言与 metri
 - 分层差只能按 `strata_tests` 的双口径措辞引用：「单调下降」不能写（7–10 vs 11–15 不可区分，
   mlp 属边缘）；4–6 层 ridge−mlp 的 +0.020「可区分」不能写成「ridge 优于 mlp」的能力结论；
   11–15 层的任何「无差异」必须同时报可检上限（MDE≈0.21）
+
+## 引用（How to cite）
+
+本仓库以 GitHub Release v1.0 作为固定引用版本；机器可读元数据见根目录 `CITATION.cff`（GitHub 会自动在侧栏展示引用建议）。若后续分配了 DOI，请优先引用 DOI。
+
+```bibtex
+@software{wu2026esm2flus,
+  author  = {{吴奕婷 (Yiting Wu)}},
+  title   = {esm2-flu-s：ESM2 在 TAPE 荧光蛋白（FLU-S）上的零样本打分 vs 轻量微调可复现基准},
+  url     = {https://github.com/fakenice/esm2-flu-s},
+  version = {1.0},
+  date    = {2026-11-18}
+}
+```
