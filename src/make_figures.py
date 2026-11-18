@@ -83,13 +83,17 @@ def fig2_ad_curve():
     fig, ax = plt.subplots(figsize=(4.6, 3.4))
     for key, lab, col in [("zero_shot", "zero-shot (WT-marginal)", C_ZS),
                           ("ridge", "ridge on frozen embeddings", C_RIDGE),
-                          ("mlp", "MLP head (3-seed mean)", C_MLP)]:
-        ax.plot(x, [r[key] for r in rows], marker="o", lw=1.5, color=col, label=lab)
+                          ("mlp", "MLP head (5-seed mean)", C_MLP)]:
+        y = np.array([r[key] for r in rows])
+        ci = np.array([r[f"{key}_ci95"] for r in rows])
+        ax.errorbar(x, y, yerr=[y - ci[:, 0], ci[:, 1] - y], fmt="-o", lw=1.5,
+                    capsize=2.5, elinewidth=0.9, color=col, label=lab)
     ax.axhline(0, color="k", lw=0.6, alpha=0.4)
     ax.axhline(MET["null_nmut"]["spearman"], color="gray", ls=":", lw=1.2,
                label=f"mutations-count-only baseline ({MET['null_nmut']['spearman']:+.3f})")
     ax.set(xticks=x, xlabel="mutations per variant (test strata)", ylabel="Spearman $\\rho$",
-           title="Applicability domain collapses with mutation count", **{"xticklabels": labels})
+           title="Applicability domain collapses with mutation count\n(bars: 95% bootstrap CI, 1000 resamples)",
+           **{"xticklabels": labels})
     ax.legend(fontsize=7.5, loc="upper right")
     fig.tight_layout()
     fig.savefig(OUT / "fig2_applicability_domain.png")

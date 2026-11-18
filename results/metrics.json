@@ -2,6 +2,12 @@
   "n_train": 20963,
   "n_valid": 5235,
   "n_test": 25517,
+  "ci_protocol": {
+    "method": "bootstrap percentile 95% CI",
+    "n_boot": 1000,
+    "rng_seed": 0,
+    "note": "same protocol for headline, subset and per-stratum CIs"
+  },
   "null_mean": {
     "spearman": null,
     "note": "constant prediction; Spearman undefined",
@@ -64,59 +70,121 @@
     "rmse": 0.8568,
     "n": 25517
   },
-  "mlp_mean3seed": {
-    "spearman": 0.615,
+  "mlp_seed3": {
+    "spearman": 0.612,
     "ci95": [
-      0.6063,
-      0.623
+      0.6028,
+      0.6202
     ],
-    "rmse": 0.8453,
+    "rmse": 0.8592,
+    "n": 25517
+  },
+  "mlp_seed4": {
+    "spearman": 0.6057,
+    "ci95": [
+      0.5968,
+      0.6141
+    ],
+    "rmse": 0.8498,
+    "n": 25517
+  },
+  "mlp_mean5seed": {
+    "spearman": 0.6166,
+    "ci95": [
+      0.608,
+      0.6246
+    ],
+    "rmse": 0.8404,
     "n": 25517
   },
   "mlp_ensemble": {
     "seeds": [
       0,
       1,
-      2
+      2,
+      3,
+      4
     ],
     "per_seed_spearman": [
       0.611,
       0.6108,
-      0.6046
+      0.6046,
+      0.612,
+      0.6057
     ],
     "train_seconds": [
+      1.4,
       1.1,
+      1.2,
       1.2,
       1.2
     ],
     "peak_gpu_MiB": [
       299.0,
       299.0,
+      299.0,
+      299.0,
       299.0
     ],
-    "seed_spread": 0.0064
+    "seed_spread": 0.0074
   },
   "by_mutation_count": [
     {
       "mutations": "4-6",
       "n": 20510,
       "zero_shot": -0.2125,
+      "zero_shot_ci95": [
+        -0.2254,
+        -0.1999
+      ],
       "ridge": 0.6927,
-      "mlp": 0.6713
+      "ridge_ci95": [
+        0.685,
+        0.7001
+      ],
+      "mlp": 0.6728,
+      "mlp_ci95": [
+        0.6648,
+        0.6804
+      ]
     },
     {
       "mutations": "7-10",
       "n": 4816,
       "zero_shot": -0.0464,
+      "zero_shot_ci95": [
+        -0.0749,
+        -0.0184
+      ],
       "ridge": 0.1356,
-      "mlp": 0.1395
+      "ridge_ci95": [
+        0.1074,
+        0.1644
+      ],
+      "mlp": 0.1395,
+      "mlp_ci95": [
+        0.1135,
+        0.168
+      ]
     },
     {
       "mutations": "11-15",
       "n": 191,
       "zero_shot": 0.072,
+      "zero_shot_ci95": [
+        -0.0742,
+        0.2247
+      ],
       "ridge": 0.0182,
-      "mlp": 0.0008
+      "ridge_ci95": [
+        -0.1295,
+        0.1506
+      ],
+      "mlp": -0.01,
+      "mlp_ci95": [
+        -0.1488,
+        0.1333
+      ]
     }
   ],
   "zero_shot_subset": {
@@ -151,12 +219,12 @@
     "n": 5000
   },
   "mlp_subset": {
-    "spearman": 0.6155,
+    "spearman": 0.6175,
     "ci95": [
-      0.5951,
-      0.6343
+      0.5976,
+      0.6365
     ],
-    "rmse": 0.8505,
+    "rmse": 0.8453,
     "n": 5000
   }
 }

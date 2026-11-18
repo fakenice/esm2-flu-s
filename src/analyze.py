@@ -8,7 +8,7 @@ Models compared on the TAPE fluorescence test split (25,517 variants, length 237
   null_nmut      predict -(number of mutations) -- "more mutations, less fluorescence"
   zero_shot      ESM2 WT-marginal log-likelihood ratio, no training at all
   ridge          linear head on frozen ESM2 mean-pooled embeddings
-  mlp            ~~~~ 2-layer head, 3 seeds ~~~~
+  mlp            ~~~~ 2-layer head, 5 seeds ~~~~
 
 No number here is hard-coded: every figure is computed from the arrays on disk.
 """
@@ -103,7 +103,10 @@ def main() -> None:
     te, Xte, zs_te = load("test")
     ytr, yva, yte = tr["log_fluor"].values, va["log_fluor"].values, te["log_fluor"].values
 
-    res: dict = {"n_train": len(tr), "n_valid": len(va), "n_test": len(te)}
+    res: dict = {"n_train": len(tr), "n_valid": len(va), "n_test": len(te),
+                 "ci_protocol": {"method": "bootstrap percentile 95% CI",
+                                 "n_boot": 1000, "rng_seed": 0,
+                                 "note": "same protocol for headline, subset and per-stratum CIs"}}
     print(f"train {len(tr)}  valid {len(va)}  test {len(te)}  dim={Xtr.shape[1]}")
 
     # ---- baselines ----------------------------------------------------------
@@ -126,8 +129,8 @@ def main() -> None:
     res["ridge_valid_spearman"] = round(float(r_valid), 4)
     score("ridge", model.predict(Xte), yte, res)
 
-    # ---- MLP head, 3 seeds --------------------------------------------------
-    seeds = [0, 1, 2]
+    # ---- MLP head, 5 seeds --------------------------------------------------
+    seeds = [0, 1, 2, 3, 4]
     preds, infos = [], []
     for s in seeds:
         p, info = mlp_head(Xtr, ytr, Xte, s)
@@ -135,30 +138,33 @@ def main() -> None:
         infos.append(info)
         score(f"mlp_seed{s}", p, yte, res)
     pm = np.mean(preds, 0)
-    score("mlp_mean3seed", pm, yte, res)
+    score("mlp_mean5seed", pm, yte, res)
     res["mlp_ensemble"] = {"seeds": seeds, "per_seed_spearman": [res[f"mlp_seed{s}"]["spearman"] for s in seeds],
                            "train_seconds": [i["seconds"] for i in infos],
                            "peak_gpu_MiB": [i["peak_gpu_MiB"] for i in infos]}
     spread = max(res[f"mlp_seed{s}"]["spearman"] for s in seeds) - min(res[f"mlp_seed{s}"]["spearman"] for s in seeds)
     res["mlp_ensemble"]["seed_spread"] = round(float(spread), 4)
 
-    # ---- where zero-shot fails: by mutation count --------------------------
+    # ---- where zero-shot fails: by mutation count, with per-stratum CIs -----
     bins = [(1, 1), (2, 3), (4, 6), (7, 10), (11, 15)]
+    ridge_te = model.predict(Xte)
     rows = []
     for lo, hi in bins:
         m = (te["num_mutations"] >= lo) & (te["num_mutations"] <= hi)
         if m.sum() < 30:
             continue
-        rows.append({
-            "mutations": f"{lo}-{hi}", "n": int(m.sum()),
-            "zero_shot": round(float(spearmanr(zs_te[m], yte[m]).statistic), 4),
-            "ridge": round(float(spearmanr(model.predict(Xte[m]), yte[m]).statistic), 4),
-            "mlp": round(float(spearmanr(pm[m], yte[m]).statistic), 4),
-        })
+        row = {"mutations": f"{lo}-{hi}", "n": int(m.sum())}
+        for key, pred in [("zero_shot", zs_te[m]), ("ridge", ridge_te[m]), ("mlp", pm[m])]:
+            rho = float(spearmanr(pred, yte[m]).statistic)
+            c_lo, c_hi = boot_spearman(pred, yte[m])
+            row[key] = round(rho, 4)
+            row[f"{key}_ci95"] = [round(c_lo, 4), round(c_hi, 4)]
+        rows.append(row)
     res["by_mutation_count"] = rows
-    print("\nby mutation count:")
+    print("\nby mutation count (95% bootstrap CI):")
     for r in rows:
-        print(f"  {r['mutations']:>6} n={r['n']:5d}  zs={r['zero_shot']:+.3f}  ridge={r['ridge']:+.3f}  mlp={r['mlp']:+.3f}")
+        print(f"  {r['mutations']:>6} n={r['n']:5d}  zs={r['zero_shot']:+.3f}{r['zero_shot_ci95']}  "
+              f"ridge={r['ridge']:+.3f}{r['ridge_ci95']}  mlp={r['mlp']:+.3f}{r['mlp_ci95']}")
 
     # ---- zero-shot on a common subset, two scoring conventions -------------
     masked_path = EMB / "test_score_maskedmarginal_subset.npy"
@@ -184,16 +190,18 @@ def main() -> None:
         "# ESM2 on TAPE fluorescence (FLU-S): zero-shot vs fine-tuned", "",
         f"- train {len(tr)} / valid {len(va)} / test {len(te)} variants, length 237, wild type = consensus",
         f"- test split is the extrapolation split: mean {te['num_mutations'].mean():.2f} mutations, max {int(te['num_mutations'].max())}",
+        "- CI protocol: 95% bootstrap percentile, 1000 resamples, rng seed 0 — identical protocol in the "
+        "headline table, the subset table and the per-stratum table below",
         "", "| model | Spearman | 95% CI (bootstrap, 1000) | RMSE | n |", "|---|---|---|---|---|",
     ]
-    order = ["null_mean", "null_nmut", "zero_shot", "ridge", "mlp_mean3seed"]
+    order = ["null_mean", "null_nmut", "zero_shot", "ridge", "mlp_mean5seed"]
     for k in order:
         v = res[k]
         if v.get("spearman") is None:
             lines.append(f"| {k} | undefined (constant) | — | {v['rmse']:.4f} | {v['n']} |")
         else:
             lines.append(f"| {k} | {v['spearman']:+.4f} | [{v['ci95'][0]:+.4f}, {v['ci95'][1]:+.4f}] | {v['rmse']:.4f} | {v['n']} |")
-    lines += ["", f"MLP: 3 seeds, per-seed Spearman {res['mlp_ensemble']['per_seed_spearman']}, "
+    lines += ["", f"MLP: {len(seeds)} seeds, per-seed Spearman {res['mlp_ensemble']['per_seed_spearman']}, "
                   f"seed spread {res['mlp_ensemble']['seed_spread']}", ""]
 
     if "zero_shot_subset" in res:
@@ -202,16 +210,19 @@ def main() -> None:
         for k, label in [("zero_shot_wt_subset", "WT-marginal (biased: mutant is its own context)"),
                          ("zero_shot_masked_subset", "masked-marginal (position masked before scoring)"),
                          ("ridge_subset", "ridge on frozen embeddings (reference)"),
-                         ("mlp_subset", "MLP 3-seed mean (reference)")]:
+                         ("mlp_subset", "MLP 5-seed mean (reference)")]:
             v = res[k]
             lines.append(f"| {label} | {v['spearman']:+.4f} | [{v['ci95'][0]:+.4f}, {v['ci95'][1]:+.4f}] |")
         lines += ["", f"Correlation between the two zero-shot scores themselves: "
                       f"{res['zero_shot_subset']['wt_vs_masked_spearman_between_scorers']:+.4f}", ""]
 
-    lines += ["## Spearman by number of mutations in the variant", "",
+    lines += ["## Spearman by number of mutations in the variant (95% bootstrap CI in brackets)", "",
               "| mutations | n | zero-shot | ridge | mlp |", "|---|---|---|---|---|"]
     for r in rows:
-        lines.append(f"| {r['mutations']} | {r['n']} | {r['zero_shot']:+.3f} | {r['ridge']:+.3f} | {r['mlp']:+.3f} |")
+        lines.append(f"| {r['mutations']} | {r['n']} | "
+                     f"{r['zero_shot']:+.3f} [{r['zero_shot_ci95'][0]:+.3f}, {r['zero_shot_ci95'][1]:+.3f}] | "
+                     f"{r['ridge']:+.3f} [{r['ridge_ci95'][0]:+.3f}, {r['ridge_ci95'][1]:+.3f}] | "
+                     f"{r['mlp']:+.3f} [{r['mlp_ci95'][0]:+.3f}, {r['mlp_ci95'][1]:+.3f}] |")
     (OUT / "report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"\nwrote {OUT/'metrics.json'} and {OUT/'report.md'}")
 
