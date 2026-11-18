@@ -6,7 +6,11 @@
 
 ## [Unreleased]
 
-- 计划：标注量学习曲线（ridge/MLP 头 × 10%–100% 训练数据 × 全 seed，bootstrap CI）
+- 2026-11-18 E5：标注量学习曲线 `src/learning_curve.py`——ridge/MLP × 嵌套 10 档
+  （10%–100%，rng seed 42 单次置换）× 与 analyze.py 同一头协议；100% 档对
+  `metrics.json` 的复现断言内置为控制门（ridge 精确、MLP 容差 0.01），不达即拒写；
+  产物 `results/learning_curve.{json,csv}`、`results/figures/fig5_learning_curve.png`；
+  README 加「标注量学习曲线（E5）」节与复现步骤
 - 2026-11-18 新增 `docs/external_baselines.md`：TAPE / ESM-1v / ESM2 / ProteinGym 原文数字
   逐条带表号核对，含口径差异清单与"不可引用项"声明；README 加「外部对照」节
 - 2026-11-18 新增 `docs/DECISIONS.md`：长度过滤、双 marginals 并报、ManualBertTok、

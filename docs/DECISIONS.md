@@ -37,3 +37,7 @@
 9. **权重经 hf-mirror 拉取并逐文件记 sha256**（本机直连 huggingface.co DNS 失败，
    且必须带浏览器 User-Agent 否则 403）；哈希清单 `models/manifest_e3.json`，
    权重不进 git（`README.md` §环境；`src/fetch_weights.py`）。
+10. **2026-11-18（E5）：学习曲线的子集是设计常量，不是调参对象**——rng seed 42
+    单次置换的嵌套 10 档，写死在看任何结果之前；alpha 每档在 valid 上重选、
+    不跨档继承；100% 档必须复现 `metrics.json` 的控制内置于脚本，不达即拒绝落盘
+    （`src/learning_curve.py` 头注释与 `control` 字段；`README.md` §标注量学习曲线）。

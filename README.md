@@ -1,7 +1,7 @@
 # esm2-flu-s
 
 ESM2 在 TAPE 荧光蛋白（FLU-S）上的**零样本打分 vs 轻量微调**复现，含数据登记、
-多 seed、bootstrap 置信区间、成本记录、四模型同协议横评与负结果。
+多 seed、bootstrap 置信区间、成本记录、四模型同协议横评、标注量学习曲线与负结果。
 
 > 目的不是刷分，而是给「结构/功能预测模型复现」这件事留下可点验的证据：
 > 每个数字都能回到某个脚本、某个文件。
@@ -99,6 +99,30 @@ ESM2-650M / ESM2-35M / SaProt-35M-seqOnly / ProtBERT-BFD，见 `results/model_co
 - 可复现性：`analyze.py` 连跑两轮，`strata_tests` 及其余分析字段逐字节一致，
   唯一波动是 `mlp_ensemble.train_seconds`（墙钟遥测，非分析数字）。
 
+## 标注量学习曲线（E5）
+
+问题：headline（ridge +0.630 / MLP +0.617）是不是被 train split 的标注量卡住？
+曲线由 `src/learning_curve.py` 生成，头协议与 `analyze.py` 完全对齐（同 alpha 网格、
+同 5 seeds、同 CI 口径）；子集是 rng seed 42 单次置换的 10 档**嵌套**分数（10%–100%）。
+控制内置：100% 档必须复现 `metrics.json`，否则脚本拒绝写产物——实测 ridge 精确相等
+（确定性 alpha 选择），MLP 五 seed 均值 +0.6161 vs 报告 +0.6166（差 0.0005，
+GPU 不可位复现容差 0.01 内）。
+
+![标注量学习曲线](results/figures/fig5_learning_curve.png)
+
+- ridge：10%（2,096 条）**+0.563 [+0.554, +0.572]** → 50% **+0.618 [+0.609, +0.627]** →
+  100% **+0.630 [+0.621, +0.638]**。一半数据已恢复全量 Spearman 的 98%；60% 之后
+  每步增益 ≤0.008，与该档 CI 宽度（约 0.018）同量级，不能称为可区分的增长。
+- MLP（5 seed 平均）：10% **+0.518 [+0.509, +0.528]** → 100% **+0.616**。全程低于
+  ridge，且差距随数据缩小而拉大（10% 档差 0.044，50% 差 0.019，100% 差 0.014）——
+  非线性头的相对劣势集中在小标注端；「线性头已吃到大部分信号」由此多了一维支撑，
+  不再只是「两个 CI 大面积重叠」。
+- alpha 每档在 valid 上重选：10 档里 9 档选到 0.001（仅 20% 档选 0.0003），
+  正则强度在该数据量区间基本不敏感。
+- **这说明什么、不说明什么**：说明在这份基准上，头性能到约一半数据后已进入平台，
+  headline 不是数据饥渴的结果；不说明「不需要那么多数据」——曲线基于单次置换的
+  嵌套子集，换一次抽样平台位置可能移动一档左右，这是量级事实，不是数据量设计建议。
+
 ## 外部对照（已发表数字，核过原文）
 
 完整对照与逐条口径差异见 [`docs/external_baselines.md`](docs/external_baselines.md)
@@ -139,6 +163,7 @@ python src/embed.py --model protbert_bfd
 python src/zeroshot_masked.py --split test --variants 5000 --batch 32
 python src/analyze.py                       # 指标、bootstrap CI、分层、分层差检验（E4）、报告
 python src/compare_models.py                # E3 横评表（650M 行与 metrics.json 断言对齐）
+python src/learning_curve.py                # E5 标注量学习曲线（100% 档断言对齐 metrics.json，失败拒写）
 python src/make_figures.py                  # README 四张图（断言与 metrics.json / model_comparison.json 对齐）
 ```
 
