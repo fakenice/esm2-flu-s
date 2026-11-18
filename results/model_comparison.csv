@@ -1,0 +1,5 @@
+model,upstream,family,emb_dim,embed_seconds_total,zero_shot,ridge,ridge_alpha,mlp
+esm2_650M,facebook/esm2_t33_650M_UR50D,esm,1280,1893.2,-0.3036,0.6297,0.001,0.6166
+esm2_35M,facebook/esm2_t12_35M_UR50D,esm,480,194.6,-0.2997,0.6115,0.001,0.6101
+saprot_35m_seqonly,westlake-repl/SaProt_35M_AF2_seqOnly,esm,480,203.3,-0.2857,0.6073,0.001,0.6054
+protbert_bfd,Rostlab/prot_bert_bfd,bert,1024,945.7,-0.2997,0.617,0.0001,0.5775

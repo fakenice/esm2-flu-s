@@ -1,7 +1,7 @@
 # esm2-flu-s
 
 ESM2 在 TAPE 荧光蛋白（FLU-S）上的**零样本打分 vs 轻量微调**复现，含数据登记、
-多 seed、bootstrap 置信区间、成本记录与负结果。
+多 seed、bootstrap 置信区间、成本记录、四模型同协议横评与负结果。
 
 > 目的不是刷分，而是给「结构/功能预测模型复现」这件事留下可点验的证据：
 > 每个数字都能回到某个脚本、某个文件。
@@ -28,8 +28,11 @@ ESM2 在 TAPE 荧光蛋白（FLU-S）上的**零样本打分 vs 轻量微调**�
 | `ridge` | 冻结 ESM2 平均池化嵌入（1280 维）+ 岭回归，alpha 在 valid 上选 |
 | `mlp` | 同上嵌入 + 2 层 MLP（256 隐层），5 个 seed |
 
-成本：单张 RTX 2080 Ti 11 GB。嵌入提取 27.6 / 27.3 / 27.0 seq/s（test / valid / train），
-峰值显存 4,146 MiB。
+横评（E3）把同一套头协议（同 alpha 网格、同 5 seeds、同 CI 口径）搬到四个冻结编码器上：
+ESM2-650M / ESM2-35M / SaProt-35M-seqOnly / ProtBERT-BFD，见 `results/model_comparison.md`。
+
+成本：单张 RTX 2080 Ti 11 GB。ESM2-650M 嵌入提取 27.6 / 27.3 / 27.0 seq/s（test / valid / train），
+峰值显存 4,146 MiB；其余模型 195–946 s 全量（`results/embed/<model>/timing_embed.json`）。
 
 ## 结果（test，n=25,517）
 
@@ -41,8 +44,8 @@ ESM2 在 TAPE 荧光蛋白（FLU-S）上的**零样本打分 vs 轻量微调**�
 |---|---|
 | ![冻结表征+岭回归：预测 vs 实测](results/figures/fig1_ridge_scatter.png) | ![适用域随突变数崩塌](results/figures/fig2_applicability_domain.png) |
 | 岭回归在 test 上的预测 vs 实测（Spearman +0.630，bootstrap CI） | 按突变数分层：外推一崩全崩，虚线为「只看突变数」基线；误差棒为 bootstrap 95% CI |
-| ![两种零样本打分口径](results/figures/fig3_zero_shot_conventions.png) | |
-| 同一批 5,000 条，WT-marginal vs masked-marginal：两种口径之间 ρ 仅 +0.309 | |
+| ![两种零样本打分口径](results/figures/fig3_zero_shot_conventions.png) | ![E3 横评：同一头协议×四个编码器](results/figures/fig4_model_comparison.png) |
+| 同一批 5,000 条，WT-marginal vs masked-marginal：两种口径之间 ρ 仅 +0.309 | 四个冻结编码器的三臂对比，误差棒为 bootstrap 95% CI |
 
 主结论：
 
@@ -59,26 +62,53 @@ ESM2 在 TAPE 荧光蛋白（FLU-S）上的**零样本打分 vs 轻量微调**�
 而零样本打分在这份数据上不成立；不说明 ESM2 对荧光蛋白一般无效，也不说明
 「线性头比非线性头好」——0.630 与 0.617 的 CI 大面积重叠，只能说线性头已吃到大部分信号。
 
+## 横评（E3）：同一头协议 × 四个冻结编码器
+
+完整表与判读见 `results/model_comparison.md`（由 `src/compare_models.py` 生成，
+连跑两次产物 sha256 一致；esm2_650M 行与主表 `metrics.json` 四条断言对齐）。要点：
+
+- ridge：650M +0.630 > ProtBERT +0.617 > 35M +0.612 > SaProt-seqOnly +0.607——
+  点估计排序如此，但 CI 只区分出「650M 优于 35M 与 SaProt-seqOnly」；
+  650M vs ProtBERT、35M vs SaProt、ProtBERT vs 两个小模型均重叠，名次不可区分。
+- 零样本 WT-marginal 在**全部四个模型**上都是 −0.29 ~ −0.30 且 CI 完全在 0 以下：
+  负排序不是 650M 的偶发，而是该打分口径在这个任务上的系统性反转。
+- SaProt 用作者发布的 seqOnly 变体（无结构 token 输入时的合法对比口径）；
+  ProtBERT 的 input_ids 按其发布 vocab.txt 行号手工构造（原因见 `src/embed.py` `ManualBertTok` 注释）。
+- 这是「单蛋白、单任务、同一协议下的编码器快照」，不构成对模型通用强弱的一般结论。
+
 ## 环境
 
 - Python 3.13；依赖见 `requirements.txt`（torch 需从 cu124 官方索引安装）
-- 单张 RTX 2080 Ti 11 GB；模型权重在 `models/`（ESM2-650M / 35M，fair-esm 官方 checkpoint），不随仓库分发
-- `data/`（TAPE 原始包与清洗产物）与 `results/embed/`（嵌入打分缓存，~253 MB）不进 git：
+- 单张 RTX 2080 Ti 11 GB；模型权重在 `models/`，不随仓库分发：
+  ESM2-650M / 35M（facebook 官方 checkpoint）、SaProt_35M_AF2_seqOnly（westlake-repl）、
+  prot_bert_bfd（Rostlab）。本机直连 huggingface.co DNS 失败，权重经 `src/fetch_weights.py`
+  从 hf-mirror.com 拉取（必须带浏览器 User-Agent，否则 403），逐文件 sha256 记在
+  `models/manifest_e3.json`
+- ProtBERT 无 tokenizer.json，且 transformers 5 的 BertTokenizer 会把大写残基小写化、
+  把 special token 登记到与 checkpoint 冲突的位置——输入 id 由 `ManualBertTok` 按发布
+  `vocab.txt` 行号手工构造（每残基一 token，[CLS]=2 / [SEP]=3 与 checkpoint 一致）
+- `data/`（TAPE 原始包与清洗产物）与 `results/embed/`（四个模型的嵌入打分缓存）不进 git：
   数据按上文链接下载，缓存由 `src/prepare.py` 与 `src/embed.py` 再生成
 
 ## 复现
 
 ```bash
 python src/prepare.py                       # 数据登记 + 共识 WT + 校验
-python src/embed.py --splits test,valid,train  # 嵌入 + WT-marginal 打分
+python src/fetch_weights.py                 # E3 新权重（hf-mirror，带浏览器 UA；已存在则只补哈希）
+python src/embed.py --splits test,valid,train  # 嵌入 + WT-marginal 打分（ESM2-650M）
+python src/embed.py --model esm2_35M        # 横评其余三模型，同理
+python src/embed.py --model saprot_35m_seqonly
+python src/embed.py --model protbert_bfd
 python src/zeroshot_masked.py --split test --variants 5000 --batch 32
 python src/analyze.py                       # 指标、bootstrap CI、分层、报告
-python src/make_figures.py                  # README 三张图（断言与 metrics.json 对齐）
+python src/compare_models.py                # E3 横评表（650M 行与 metrics.json 断言对齐）
+python src/make_figures.py                  # README 四张图（断言与 metrics.json / model_comparison.json 对齐）
 ```
 
 ## 红线（不能写成什么）
 
-- 不能写「RFdiffusion / AlphaFold / ESM 熟练」——本项目只做了 ESM2 的冻结表征与打分
+- 不能写「RFdiffusion / AlphaFold / ESM 熟练」——本项目只做了 ESM2 / SaProt-seqOnly / ProtBERT 的冻结表征与打分
 - 不能写「复现了 ESM2 论文结果」——只在这一个基准上、只用自己的切分与打分口径
 - 不能写湿实验、不能写「证明了突变效应机制」
 - WT-marginal 与 masked-marginal 的差别必须写出来，不能只报好看的那个
+- 横评是单蛋白单任务快照，不能写成「跨基准的模型通用强弱排名」；CI 重叠的名次不能写成「A 优于 B」

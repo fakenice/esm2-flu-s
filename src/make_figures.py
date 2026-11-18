@@ -1,10 +1,12 @@
 """Step 4: publication-style figures, computed from the same arrays as analyze.py.
 
-Inputs:  data/processed/*.csv, results/embed/*.npy, results/metrics.json
+Inputs:  data/processed/*.csv, results/embed/*.npy, results/metrics.json,
+         results/model_comparison.json (fig4; run src/compare_models.py first)
 Outputs: results/figures/*.png
 
 Every number annotated on a figure is recomputed here and asserted against
-metrics.json, so README figures can never drift from the reported table.
+metrics.json (figs 1-3) or model_comparison.json (fig4), so README figures can
+never drift from the reported tables.
 """
 from __future__ import annotations
 
@@ -22,9 +24,10 @@ from sklearn.linear_model import Ridge
 
 ROOT = Path(__file__).resolve().parents[1]
 PROC = ROOT / "data" / "processed"
-EMB = ROOT / "results" / "embed"
+EMB = ROOT / "results" / "embed" / "esm2_650M"
 OUT = ROOT / "results" / "figures"
 MET = json.loads((ROOT / "results" / "metrics.json").read_text(encoding="utf-8"))
+MC_PATH = ROOT / "results" / "model_comparison.json"
 
 plt.rcParams.update({"figure.dpi": 150, "font.size": 9, "axes.spines.top": False,
                      "axes.spines.right": False})
@@ -121,13 +124,56 @@ def fig3_scorer_conventions():
     plt.close(fig)
 
 
+def fig4_model_comparison():
+    """Grouped bars: same head protocol on four frozen encoders (E3).
+
+    Bars are recomputed only in the sense that they are re-read from
+    model_comparison.json and asserted twice over: against that file's own CI
+    fields, and for the esm2_650M row against the headline metrics.json.
+    """
+    mc = json.loads(MC_PATH.read_text(encoding="utf-8"))
+    models = list(mc["models"].keys())  # json preserves the ORDER used by compare_models.py
+    arms = [("zero_shot", "zero-shot (WT-marginal)", C_ZS),
+            ("ridge", "ridge", C_RIDGE), ("mlp", "MLP (5 seeds)", C_MLP)]
+    # cross-file assert: the 650M row must equal the published headline table
+    m6 = mc["models"]["esm2_650M"]
+    assert m6["zero_shot"]["spearman"] == MET["zero_shot"]["spearman"]
+    assert m6["ridge"]["spearman"] == MET["ridge"]["spearman"]
+    assert m6["mlp"]["spearman"] == MET["mlp_mean5seed"]["spearman"]
+    x = np.arange(len(models))
+    w = 0.26
+    fig, ax = plt.subplots(figsize=(6.4, 3.6))
+    for k, (key, lab, col) in enumerate(arms):
+        ys, los, his = [], [], []
+        for model in models:
+            m = mc["models"][model][key]
+            ys.append(m["spearman"])
+            los.append(m["spearman"] - m["ci95"][0])
+            his.append(m["ci95"][1] - m["spearman"])
+        ax.bar(x + (k - 1) * w, ys, width=w, color=col, label=lab,
+               yerr=[los, his], capsize=2.5, error_kw={"lw": 0.8})
+    ax.axhline(0, color="k", lw=0.6, alpha=0.5)
+    ax.set_ylim(-0.42, 0.88)  # headroom so the legend never covers the bars
+    ax.set(xticks=x, ylabel="Spearman $\\rho$ on FLU-S test (n=25,517)",
+           title="E3: same head protocol, four frozen encoders\n(bars: 95% bootstrap CI, 1000 resamples)",
+           **{"xticklabels": [f"{m}\n{mc['models'][m]['emb_dim']}d" for m in models]})
+    ax.legend(fontsize=7.5)
+    fig.tight_layout()
+    fig.savefig(OUT / "fig4_model_comparison.png")
+    plt.close(fig)
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     model = fit_ridge()
     fig1_ridge_scatter(model)
     fig2_ad_curve()
     fig3_scorer_conventions()
-    print(f"wrote 3 figures to {OUT}")
+    if MC_PATH.exists():
+        fig4_model_comparison()
+        print(f"wrote 4 figures to {OUT}")
+    else:
+        print(f"wrote 3 figures to {OUT} (fig4 skipped: run src/compare_models.py first)")
 
 
 if __name__ == "__main__":

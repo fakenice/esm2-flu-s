@@ -24,7 +24,7 @@ from transformers import AutoModelForMaskedLM, AutoTokenizer
 
 ROOT = Path(__file__).resolve().parents[1]
 PROC = ROOT / "data" / "processed"
-EMB = ROOT / "results" / "embed"
+EMB = ROOT / "results" / "embed" / "esm2_650M"
 
 
 def main() -> None:

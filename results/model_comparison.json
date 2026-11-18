@@ -1,0 +1,214 @@
+{
+  "protocol": {
+    "ridge_alphas": [
+      0.0001,
+      0.0003,
+      0.001,
+      0.003,
+      0.01,
+      0.03,
+      0.1,
+      0.3,
+      1.0,
+      3.0,
+      10.0,
+      100.0,
+      1000.0,
+      10000.0
+    ],
+    "mlp_seeds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "ci": "bootstrap percentile 95%, 1000 resamples, rng seed 0"
+  },
+  "models": {
+    "esm2_650M": {
+      "n_test": 25517,
+      "emb_dim": 1280,
+      "params_M": null,
+      "embed_seconds_total": 1893.2,
+      "peak_gpu_MiB": 4146.0,
+      "family": "esm",
+      "upstream": "facebook/esm2_t33_650M_UR50D",
+      "zero_shot": {
+        "spearman": -0.3036,
+        "ci95": [
+          -0.3144,
+          -0.2924
+        ]
+      },
+      "ridge": {
+        "alpha": 0.001,
+        "valid_spearman": 0.703,
+        "spearman": 0.6297,
+        "ci95": [
+          0.6208,
+          0.638
+        ]
+      },
+      "mlp": {
+        "seeds": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "per_seed_spearman": [
+          0.611,
+          0.6108,
+          0.6046,
+          0.612,
+          0.6057
+        ],
+        "spearman": 0.6166,
+        "ci95": [
+          0.608,
+          0.6246
+        ]
+      }
+    },
+    "esm2_35M": {
+      "n_test": 25517,
+      "emb_dim": 480,
+      "params_M": 33.5,
+      "embed_seconds_total": 194.6,
+      "peak_gpu_MiB": 740.0,
+      "family": "esm",
+      "upstream": "facebook/esm2_t12_35M_UR50D",
+      "zero_shot": {
+        "spearman": -0.2997,
+        "ci95": [
+          -0.3108,
+          -0.2885
+        ]
+      },
+      "ridge": {
+        "alpha": 0.001,
+        "valid_spearman": 0.6372,
+        "spearman": 0.6115,
+        "ci95": [
+          0.6026,
+          0.6195
+        ]
+      },
+      "mlp": {
+        "seeds": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "per_seed_spearman": [
+          0.609,
+          0.6025,
+          0.6041,
+          0.5971,
+          0.602
+        ],
+        "spearman": 0.6101,
+        "ci95": [
+          0.6016,
+          0.6181
+        ]
+      }
+    },
+    "saprot_35m_seqonly": {
+      "n_test": 25517,
+      "emb_dim": 480,
+      "params_M": 33.7,
+      "embed_seconds_total": 203.3,
+      "peak_gpu_MiB": 767.0,
+      "family": "esm",
+      "upstream": "westlake-repl/SaProt_35M_AF2_seqOnly",
+      "zero_shot": {
+        "spearman": -0.2857,
+        "ci95": [
+          -0.2964,
+          -0.2741
+        ]
+      },
+      "ridge": {
+        "alpha": 0.001,
+        "valid_spearman": 0.6224,
+        "spearman": 0.6073,
+        "ci95": [
+          0.5987,
+          0.6159
+        ]
+      },
+      "mlp": {
+        "seeds": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "per_seed_spearman": [
+          0.5972,
+          0.5971,
+          0.5972,
+          0.5966,
+          0.5929
+        ],
+        "spearman": 0.6054,
+        "ci95": [
+          0.5969,
+          0.6143
+        ]
+      }
+    },
+    "protbert_bfd": {
+      "n_test": 25517,
+      "emb_dim": 1024,
+      "params_M": 419.9,
+      "embed_seconds_total": 945.7,
+      "peak_gpu_MiB": 3712.0,
+      "family": "bert",
+      "upstream": "Rostlab/prot_bert_bfd",
+      "zero_shot": {
+        "spearman": -0.2997,
+        "ci95": [
+          -0.311,
+          -0.288
+        ]
+      },
+      "ridge": {
+        "alpha": 0.0001,
+        "valid_spearman": 0.6796,
+        "spearman": 0.617,
+        "ci95": [
+          0.6085,
+          0.6254
+        ]
+      },
+      "mlp": {
+        "seeds": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "per_seed_spearman": [
+          0.5698,
+          0.5654,
+          0.5747,
+          0.5763,
+          0.5669
+        ],
+        "spearman": 0.5775,
+        "ci95": [
+          0.5684,
+          0.5864
+        ]
+      }
+    }
+  }
+}

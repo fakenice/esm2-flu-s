@@ -1,6 +1,6 @@
 """Step 3: zero-shot vs fine-tuned, with baselines, seeds and confidence intervals.
 
-Inputs (from src/embed.py):  results/embed/{split}_emb.npy, {split}_score_wtmarginal.npy
+Inputs (from src/embed.py):  results/embed/esm2_650M/{split}_emb.npy, {split}_score_wtmarginal.npy
 Outputs: results/metrics.json, results/report.md
 
 Models compared on the TAPE fluorescence test split (25,517 variants, length 237):
@@ -25,8 +25,13 @@ from sklearn.linear_model import Ridge
 
 ROOT = Path(__file__).resolve().parents[1]
 PROC = ROOT / "data" / "processed"
-EMB = ROOT / "results" / "embed"
+EMB = ROOT / "results" / "embed" / "esm2_650M"
 OUT = ROOT / "results"
+
+# shared with src/compare_models.py so the cross-model benchmark uses the
+# identical head protocol (same alphas, same seeds) as the main report
+RIDGE_ALPHAS = (0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0, 3.0, 10.0, 100.0, 1000.0, 10000.0)
+MLP_SEEDS = [0, 1, 2, 3, 4]
 
 
 def load(split: str):
@@ -118,7 +123,7 @@ def main() -> None:
 
     # ---- ridge on frozen embeddings ----------------------------------------
     best = None
-    for alpha in (0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0, 3.0, 10.0, 100.0, 1000.0, 10000.0):
+    for alpha in RIDGE_ALPHAS:
         m = Ridge(alpha=alpha).fit(Xtr, ytr)
         r = spearmanr(m.predict(Xva), yva).statistic
         print(f"  ridge alpha={alpha:<8} valid spearman={r:+.4f}")
@@ -130,7 +135,7 @@ def main() -> None:
     score("ridge", model.predict(Xte), yte, res)
 
     # ---- MLP head, 5 seeds --------------------------------------------------
-    seeds = [0, 1, 2, 3, 4]
+    seeds = MLP_SEEDS
     preds, infos = [], []
     for s in seeds:
         p, info = mlp_head(Xtr, ytr, Xte, s)
