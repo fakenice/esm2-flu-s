@@ -15,6 +15,7 @@ No number here is hard-coded: every figure is computed from the arrays on disk.
 from __future__ import annotations
 
 import json
+import math
 import time
 from pathlib import Path
 
@@ -52,6 +53,36 @@ def boot_spearman(pred, y, n_boot=1000, seed=0):
         if np.isfinite(r):
             vals.append(r)
     return float(np.percentile(vals, 2.5)), float(np.percentile(vals, 97.5))
+
+
+MODEL_ORDER = ["zero_shot", "ridge", "mlp"]
+
+
+def boot_rho_matrix(preds: dict, y, n_boot=1000, seed=0) -> np.ndarray:
+    """[n_boot, 3] bootstrap Spearman for the three models under one shared
+    index draw per replicate: within-stratum deltas stay paired (same variants),
+    and deltas across strata stay independent (each stratum draws its own seed-0
+    stream over disjoint variants)."""
+    rng = np.random.default_rng(seed)
+    n = len(y)
+    out = np.empty((n_boot, len(MODEL_ORDER)))
+    for b in range(n_boot):
+        idx = rng.integers(0, n, n)
+        yb = y[idx]
+        for j, k in enumerate(MODEL_ORDER):
+            out[b, j] = spearmanr(preds[k][idx], yb).statistic
+    return out
+
+
+def fisher_z_two_rhos(r1: float, n1: int, r2: float, n2: int):
+    """Approximate two-sided test that two INDEPENDENT correlations differ
+    (disjoint strata). Fisher r-to-z with the standard 1/(n-3) SE applied to
+    Spearman is an approximation; it is reported only as a cross-check of the
+    bootstrap CI, which carries the inference."""
+    se = math.sqrt(1.0 / (n1 - 3) + 1.0 / (n2 - 3))
+    z = (math.atanh(r1) - math.atanh(r2)) / se
+    p = math.erfc(abs(z) / math.sqrt(2.0))
+    return z, p
 
 
 def score(name, pred, y, out: dict):
@@ -154,11 +185,15 @@ def main() -> None:
     bins = [(1, 1), (2, 3), (4, 6), (7, 10), (11, 15)]
     ridge_te = model.predict(Xte)
     rows = []
+    strata_arrays: dict[str, dict] = {}
     for lo, hi in bins:
         m = (te["num_mutations"] >= lo) & (te["num_mutations"] <= hi)
         if m.sum() < 30:
             continue
-        row = {"mutations": f"{lo}-{hi}", "n": int(m.sum())}
+        label = f"{lo}-{hi}"
+        row = {"mutations": label, "n": int(m.sum())}
+        strata_arrays[label] = {"zero_shot": zs_te[m], "ridge": ridge_te[m],
+                                "mlp": pm[m], "y": yte[m]}
         for key, pred in [("zero_shot", zs_te[m]), ("ridge", ridge_te[m]), ("mlp", pm[m])]:
             rho = float(spearmanr(pred, yte[m]).statistic)
             c_lo, c_hi = boot_spearman(pred, yte[m])
@@ -170,6 +205,100 @@ def main() -> None:
     for r in rows:
         print(f"  {r['mutations']:>6} n={r['n']:5d}  zs={r['zero_shot']:+.3f}{r['zero_shot_ci95']}  "
               f"ridge={r['ridge']:+.3f}{r['ridge_ci95']}  mlp={r['mlp']:+.3f}{r['mlp_ci95']}")
+
+    # ---- E4: is the between-stratum rho difference itself significant? ------
+    # The strata are disjoint variant sets, so between-stratum deltas compare
+    # INDEPENDENT correlations (bootstrap: one seed-0 resample stream per stratum;
+    # cross-check: Fisher r-to-z). Within a stratum the models share variants and
+    # the target, so those deltas are DEPENDENT correlations and must be
+    # bootstrapped paired (same index draw across models) -- the nonparametric
+    # counterpart of a Steiger-type test.
+    labels = [r["mutations"] for r in rows]
+    rho_boot = {lab: boot_rho_matrix(strata_arrays[lab], strata_arrays[lab]["y"])
+                for lab in labels}
+    row_by_lab = {r["mutations"]: r for r in rows}
+
+    between = []
+    pairs = [(labels[0], labels[1]), (labels[1], labels[2]), (labels[0], labels[2])] \
+        if len(labels) == 3 else list(zip(labels, labels[1:]))
+    for lab_a, lab_b in pairs:
+        for model_key in MODEL_ORDER:
+            j = MODEL_ORDER.index(model_key)
+            d = rho_boot[lab_a][:, j] - rho_boot[lab_b][:, j]
+            lo_c, hi_c = float(np.percentile(d, 2.5)), float(np.percentile(d, 97.5))
+            rho_a, rho_b = row_by_lab[lab_a][model_key], row_by_lab[lab_b][model_key]
+            z, p = fisher_z_two_rhos(rho_a, row_by_lab[lab_a]["n"],
+                                     rho_b, row_by_lab[lab_b]["n"])
+            between.append({
+                "model": model_key, "pair": f"{lab_a} vs {lab_b}",
+                "rho_a": rho_a, "rho_b": rho_b,
+                "delta": round(rho_a - rho_b, 4),
+                "delta_ci95": [round(lo_c, 4), round(hi_c, 4)],
+                "significant_ci": bool(hi_c < 0 or lo_c > 0),
+                "fisher_z": round(z, 3), "p_raw": p,
+                "p_bonferroni": min(1.0, p * len(pairs) * len(MODEL_ORDER)),
+                # a delta counts as a finding only if BOTH calibers agree
+                "significant": bool((hi_c < 0 or lo_c > 0) and min(1.0, p * len(pairs) * len(MODEL_ORDER)) < 0.05),
+            })
+
+    within = []
+    for lab in labels:
+        for ka, kb in [("ridge", "zero_shot"), ("ridge", "mlp")]:
+            ia, ib = MODEL_ORDER.index(ka), MODEL_ORDER.index(kb)
+            d = rho_boot[lab][:, ia] - rho_boot[lab][:, ib]
+            lo_c, hi_c = float(np.percentile(d, 2.5)), float(np.percentile(d, 97.5))
+            within.append({
+                "stratum": lab, "pair": f"{ka} - {kb}",
+                "delta": round(row_by_lab[lab][ka] - row_by_lab[lab][kb], 4),
+                "delta_ci95": [round(lo_c, 4), round(hi_c, 4)],
+                "distinguishable": bool(hi_c < 0 or lo_c > 0),
+            })
+
+    # power ceiling of the small stratum, on the Fisher-z scale (80% power,
+    # two-sided alpha 0.05): MDE ~ (1.96+0.84)*SE -- what the data CANNOT detect
+    mde_small_vs_first = None
+    if len(labels) >= 3:
+        n_s, n_f = row_by_lab[labels[-1]]["n"], row_by_lab[labels[0]]["n"]
+        mde_small_vs_first = round(2.8 * math.sqrt(1.0 / (n_s - 3) + 1.0 / (n_f - 3)), 3)
+
+    readout = []
+    for b in between:
+        label_pair = b["pair"].replace(" vs ", ")−ρ(")
+        prefix = f"{b['model']}: ρ({label_pair}) = {b['delta']:+.3f}"
+        if b["significant"]:
+            direction = ""
+            if b["model"] == "zero_shot":
+                direction = "（负信号随外推减弱，朝 0 靠拢）" if b["delta"] < 0 and b["rho_a"] < 0 \
+                    else "（随突变数增多向 0 靠拢）" if b["delta"] > 0 else ""
+            readout.append(f"{prefix}，CI 不含 0 且 Bonferroni 后 p<0.05 ⇒ 差异显著{direction}")
+        elif b["significant_ci"]:
+            readout.append(f"{prefix}，CI 勉强不含 0 但 Bonferroni 后 p="
+                           f"{b['p_bonferroni']:.2f} ⇒ 边缘结果，不作为结论")
+        else:
+            readout.append(f"{prefix}，CI 跨 0 ⇒ 差异不可区分")
+    res["strata_tests"] = {
+        "protocol": {
+            "primary": "95% bootstrap percentile CI on the delta, 1000 resamples, seed 0 "
+                       "(independent streams per disjoint stratum; paired index draw within a stratum)",
+            "cross_check": "Fisher r-to-z for independent correlations, SE = sqrt(1/(n1-3)+1/(n2-3)); "
+                           "applied to Spearman as an approximation; Bonferroni over the between-stratum family",
+            "note": "bootstrap CI is the inference; the z-test only corroborates it",
+        },
+        "between_strata": between,
+        "within_stratum": within,
+        "mde_fisher_z_scale_small_vs_first_stratum": mde_small_vs_first,
+        "readout": readout,
+    }
+    print("\nbetween-stratum deltas (bootstrap CI + Fisher z cross-check):")
+    for b in between:
+        print(f"  {b['model']:>9} {b['pair']:>16}: Δ={b['delta']:+.4f} "
+              f"CI[{b['delta_ci95'][0]:+.4f},{b['delta_ci95'][1]:+.4f}] "
+              f"z={b['fisher_z']:+.2f} p={b['p_raw']:.3g} -> {'显著' if b['significant'] else '不可区分'}")
+    print("within-stratum deltas (paired bootstrap):")
+    for w in within:
+        print(f"  {w['stratum']:>6} {w['pair']:>18}: Δ={w['delta']:+.4f} "
+              f"CI[{w['delta_ci95'][0]:+.4f},{w['delta_ci95'][1]:+.4f}] "
+              f"-> {'可区分' if w['distinguishable'] else '不可区分'}")
 
     # ---- zero-shot on a common subset, two scoring conventions -------------
     masked_path = EMB / "test_score_maskedmarginal_subset.npy"
@@ -228,6 +357,30 @@ def main() -> None:
                      f"{r['zero_shot']:+.3f} [{r['zero_shot_ci95'][0]:+.3f}, {r['zero_shot_ci95'][1]:+.3f}] | "
                      f"{r['ridge']:+.3f} [{r['ridge_ci95'][0]:+.3f}, {r['ridge_ci95'][1]:+.3f}] | "
                      f"{r['mlp']:+.3f} [{r['mlp_ci95'][0]:+.3f}, {r['mlp_ci95'][1]:+.3f}] |")
+
+    st = res["strata_tests"]
+    lines += ["", "## 分层 ρ 差异的显著性检验（E4）", "",
+              f"主推断：Δρ 的 95% bootstrap 百分位 CI（{st['protocol']['primary']}）；"
+              "交叉核对：Fisher r-to-z（独立分层适用，Spearman 上为近似）。", ""]
+    if st["mde_fisher_z_scale_small_vs_first_stratum"] is not None:
+        lines += [f"最小可检差（末层 vs 首层，Fisher-z 尺度，80% 功效）≈ "
+                  f"{st['mde_fisher_z_scale_small_vs_first_stratum']}——小样本层「检不出」不等于「无差异」。", ""]
+    lines += ["| 模型 | 层对比 | Δρ | Δρ 95% CI | Fisher z | p（原始/Bonferroni） | 判定 |", "|---|---|---|---|---|---|---|"]
+    for b in st["between_strata"]:
+        p_raw = "<1e-300" if b["p_raw"] < 1e-300 else f"{b['p_raw']:.3g}"
+        p_bon = "<1e-300" if b["p_bonferroni"] < 1e-300 else f"{b['p_bonferroni']:.3g}"
+        verdict = ("显著" if b["significant"] else
+                   "边缘（CI 不含 0 但校正后 p≥0.05）" if b["significant_ci"] else "不可区分")
+        lines.append(f"| {b['model']} | {b['pair']} | {b['delta']:+.3f} | "
+                     f"[{b['delta_ci95'][0]:+.3f}, {b['delta_ci95'][1]:+.3f}] | "
+                     f"{b['fisher_z']:+.2f} | {p_raw} / {p_bon} | {verdict} |")
+    lines += ["", "同层内（同一批变体、相关不独立，配对 bootstrap）：", "",
+              "| 层 | 对比 | Δρ | 95% CI | 判定 |", "|---|---|---|---|---|"]
+    for w in st["within_stratum"]:
+        lines.append(f"| {w['stratum']} | {w['pair']} | {w['delta']:+.3f} | "
+                     f"[{w['delta_ci95'][0]:+.3f}, {w['delta_ci95'][1]:+.3f}] | "
+                     f"{'可区分' if w['distinguishable'] else '不可区分'} |")
+    lines += ["", "判读：", ""] + [f"- {t}" for t in st["readout"]]
     (OUT / "report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"\nwrote {OUT/'metrics.json'} and {OUT/'report.md'}")
 

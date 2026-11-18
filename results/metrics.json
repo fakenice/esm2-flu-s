@@ -114,10 +114,10 @@
     ],
     "train_seconds": [
       1.1,
-      1.1,
-      1.2,
-      1.2,
-      1.3
+      1.0,
+      1.0,
+      1.0,
+      1.0
     ],
     "peak_gpu_MiB": [
       299.0,
@@ -187,6 +187,233 @@
       ]
     }
   ],
+  "strata_tests": {
+    "protocol": {
+      "primary": "95% bootstrap percentile CI on the delta, 1000 resamples, seed 0 (independent streams per disjoint stratum; paired index draw within a stratum)",
+      "cross_check": "Fisher r-to-z for independent correlations, SE = sqrt(1/(n1-3)+1/(n2-3)); applied to Spearman as an approximation; Bonferroni over the between-stratum family",
+      "note": "bootstrap CI is the inference; the z-test only corroborates it"
+    },
+    "between_strata": [
+      {
+        "model": "zero_shot",
+        "pair": "4-6 vs 7-10",
+        "rho_a": -0.2125,
+        "rho_b": -0.0464,
+        "delta": -0.1661,
+        "delta_ci95": [
+          -0.197,
+          -0.1351
+        ],
+        "significant_ci": true,
+        "fisher_z": -10.574,
+        "p_raw": 3.9485491223124074e-26,
+        "p_bonferroni": 3.5536942100811665e-25,
+        "significant": true
+      },
+      {
+        "model": "ridge",
+        "pair": "4-6 vs 7-10",
+        "rho_a": 0.6927,
+        "rho_b": 0.1356,
+        "delta": 0.5571,
+        "delta_ci95": [
+          0.5284,
+          0.5848
+        ],
+        "significant_ci": true,
+        "fisher_z": 44.746,
+        "p_raw": 0.0,
+        "p_bonferroni": 0.0,
+        "significant": true
+      },
+      {
+        "model": "mlp",
+        "pair": "4-6 vs 7-10",
+        "rho_a": 0.6728,
+        "rho_b": 0.1395,
+        "delta": 0.5333,
+        "delta_ci95": [
+          0.5027,
+          0.5597
+        ],
+        "significant_ci": true,
+        "fisher_z": 42.17,
+        "p_raw": 0.0,
+        "p_bonferroni": 0.0,
+        "significant": true
+      },
+      {
+        "model": "zero_shot",
+        "pair": "7-10 vs 11-15",
+        "rho_a": -0.0464,
+        "rho_b": 0.072,
+        "delta": -0.1184,
+        "delta_ci95": [
+          -0.2765,
+          0.0275
+        ],
+        "significant_ci": false,
+        "fisher_z": -1.595,
+        "p_raw": 0.11077043674493094,
+        "p_bonferroni": 0.9969339307043785,
+        "significant": false
+      },
+      {
+        "model": "ridge",
+        "pair": "7-10 vs 11-15",
+        "rho_a": 0.1356,
+        "rho_b": 0.0182,
+        "delta": 0.1174,
+        "delta_ci95": [
+          -0.0162,
+          0.2619
+        ],
+        "significant_ci": false,
+        "fisher_z": 1.59,
+        "p_raw": 0.1117359519564828,
+        "p_bonferroni": 1.0,
+        "significant": false
+      },
+      {
+        "model": "mlp",
+        "pair": "7-10 vs 11-15",
+        "rho_a": 0.1395,
+        "rho_b": -0.01,
+        "delta": 0.1495,
+        "delta_ci95": [
+          0.0048,
+          0.2934
+        ],
+        "significant_ci": true,
+        "fisher_z": 2.023,
+        "p_raw": 0.043046049382705696,
+        "p_bonferroni": 0.38741444444435125,
+        "significant": false
+      },
+      {
+        "model": "zero_shot",
+        "pair": "4-6 vs 11-15",
+        "rho_a": -0.2125,
+        "rho_b": 0.072,
+        "delta": -0.2845,
+        "delta_ci95": [
+          -0.4365,
+          -0.1368
+        ],
+        "significant_ci": true,
+        "fisher_z": -3.93,
+        "p_raw": 8.50549556286098e-05,
+        "p_bonferroni": 0.0007654946006574882,
+        "significant": true
+      },
+      {
+        "model": "ridge",
+        "pair": "4-6 vs 11-15",
+        "rho_a": 0.6927,
+        "rho_b": 0.0182,
+        "delta": 0.6745,
+        "delta_ci95": [
+          0.5427,
+          0.8195
+        ],
+        "significant_ci": true,
+        "fisher_z": 11.396,
+        "p_raw": 4.3873372593605686e-30,
+        "p_bonferroni": 3.948603533424512e-29,
+        "significant": true
+      },
+      {
+        "model": "mlp",
+        "pair": "4-6 vs 11-15",
+        "rho_a": 0.6728,
+        "rho_b": -0.01,
+        "delta": 0.6828,
+        "delta_ci95": [
+          0.5426,
+          0.8179
+        ],
+        "significant_ci": true,
+        "fisher_z": 11.272,
+        "p_raw": 1.8079423549297382e-29,
+        "p_bonferroni": 1.6271481194367646e-28,
+        "significant": true
+      }
+    ],
+    "within_stratum": [
+      {
+        "stratum": "4-6",
+        "pair": "ridge - zero_shot",
+        "delta": 0.9052,
+        "delta_ci95": [
+          0.8906,
+          0.9203
+        ],
+        "distinguishable": true
+      },
+      {
+        "stratum": "4-6",
+        "pair": "ridge - mlp",
+        "delta": 0.0199,
+        "delta_ci95": [
+          0.0151,
+          0.0247
+        ],
+        "distinguishable": true
+      },
+      {
+        "stratum": "7-10",
+        "pair": "ridge - zero_shot",
+        "delta": 0.182,
+        "delta_ci95": [
+          0.1405,
+          0.2231
+        ],
+        "distinguishable": true
+      },
+      {
+        "stratum": "7-10",
+        "pair": "ridge - mlp",
+        "delta": -0.0039,
+        "delta_ci95": [
+          -0.021,
+          0.0122
+        ],
+        "distinguishable": false
+      },
+      {
+        "stratum": "11-15",
+        "pair": "ridge - zero_shot",
+        "delta": -0.0538,
+        "delta_ci95": [
+          -0.2493,
+          0.1415
+        ],
+        "distinguishable": false
+      },
+      {
+        "stratum": "11-15",
+        "pair": "ridge - mlp",
+        "delta": 0.0282,
+        "delta_ci95": [
+          -0.0867,
+          0.1437
+        ],
+        "distinguishable": false
+      }
+    ],
+    "mde_fisher_z_scale_small_vs_first_stratum": 0.205,
+    "readout": [
+      "zero_shot: \u03c1(4-6)\u2212\u03c1(7-10) = -0.166\uff0cCI \u4e0d\u542b 0 \u4e14 Bonferroni \u540e p<0.05 \u21d2 \u5dee\u5f02\u663e\u8457\uff08\u8d1f\u4fe1\u53f7\u968f\u5916\u63a8\u51cf\u5f31\uff0c\u671d 0 \u9760\u62e2\uff09",
+      "ridge: \u03c1(4-6)\u2212\u03c1(7-10) = +0.557\uff0cCI \u4e0d\u542b 0 \u4e14 Bonferroni \u540e p<0.05 \u21d2 \u5dee\u5f02\u663e\u8457",
+      "mlp: \u03c1(4-6)\u2212\u03c1(7-10) = +0.533\uff0cCI \u4e0d\u542b 0 \u4e14 Bonferroni \u540e p<0.05 \u21d2 \u5dee\u5f02\u663e\u8457",
+      "zero_shot: \u03c1(7-10)\u2212\u03c1(11-15) = -0.118\uff0cCI \u8de8 0 \u21d2 \u5dee\u5f02\u4e0d\u53ef\u533a\u5206",
+      "ridge: \u03c1(7-10)\u2212\u03c1(11-15) = +0.117\uff0cCI \u8de8 0 \u21d2 \u5dee\u5f02\u4e0d\u53ef\u533a\u5206",
+      "mlp: \u03c1(7-10)\u2212\u03c1(11-15) = +0.149\uff0cCI \u52c9\u5f3a\u4e0d\u542b 0 \u4f46 Bonferroni \u540e p=0.39 \u21d2 \u8fb9\u7f18\u7ed3\u679c\uff0c\u4e0d\u4f5c\u4e3a\u7ed3\u8bba",
+      "zero_shot: \u03c1(4-6)\u2212\u03c1(11-15) = -0.284\uff0cCI \u4e0d\u542b 0 \u4e14 Bonferroni \u540e p<0.05 \u21d2 \u5dee\u5f02\u663e\u8457\uff08\u8d1f\u4fe1\u53f7\u968f\u5916\u63a8\u51cf\u5f31\uff0c\u671d 0 \u9760\u62e2\uff09",
+      "ridge: \u03c1(4-6)\u2212\u03c1(11-15) = +0.674\uff0cCI \u4e0d\u542b 0 \u4e14 Bonferroni \u540e p<0.05 \u21d2 \u5dee\u5f02\u663e\u8457",
+      "mlp: \u03c1(4-6)\u2212\u03c1(11-15) = +0.683\uff0cCI \u4e0d\u542b 0 \u4e14 Bonferroni \u540e p<0.05 \u21d2 \u5dee\u5f02\u663e\u8457"
+    ]
+  },
   "zero_shot_subset": {
     "n": 5000,
     "wt_vs_masked_spearman_between_scorers": 0.3093
