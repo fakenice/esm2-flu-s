@@ -1,0 +1,22 @@
+{
+  "title": "esm2-flu-s：ESM2 在 TAPE 荧光蛋白（FLU-S）上的零样本打分 vs 轻量微调可复现基准",
+  "version": "v1.0",
+  "publication_date": "2026-11-18",
+  "upload_type": "software",
+  "language": "zh",
+  "authors": [
+    {
+      "name": "Wu, Yiting"
+    }
+  ],
+  "description": "<p>Reproducible mini-benchmark of ESM2 zero-shot scoring versus lightweight fine-tuning heads on the TAPE fluorescent-protein (FLU-S) task: four frozen encoders x two zero-shot calibres x regression heads, bootstrap 95% CIs on all Spearman numbers, Fisher-z / Delta-rho stratified tests with Bonferroni correction, and negative results published as-is.</p><p>esm2-flu-s：把「复现单模型」做成四编码器 x 两种零样本口径 x 回归头的公开基准；统一头协议下全部 Spearman 带 bootstrap 95% CI，分层差经双口径检验（Bonferroni 校正），负结果如实公开。</p>",
+  "keywords": [
+    "protein language model",
+    "ESM2",
+    "zero-shot",
+    "benchmark",
+    "reproducibility",
+    "fluorescent proteins",
+    "negative results"
+  ]
+}
