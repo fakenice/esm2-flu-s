@@ -9,6 +9,8 @@
 - 计划：标注量学习曲线（ridge/MLP 头 × 10%–100% 训练数据 × 全 seed，bootstrap CI）
 - 2026-11-18 新增 `docs/external_baselines.md`：TAPE / ESM-1v / ESM2 / ProteinGym 原文数字
   逐条带表号核对，含口径差异清单与"不可引用项"声明；README 加「外部对照」节
+- 2026-11-18 新增 `docs/DECISIONS.md`：长度过滤、双 marginals 并报、ManualBertTok、
+  E4 双口径检验等决定的仓内依据逐条登记（日期对齐 git）
 
 ## [v1.0] - 2026-11-18
 
