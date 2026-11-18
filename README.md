@@ -99,6 +99,20 @@ ESM2-650M / ESM2-35M / SaProt-35M-seqOnly / ProtBERT-BFD，见 `results/model_co
 - 可复现性：`analyze.py` 连跑两轮，`strata_tests` 及其余分析字段逐字节一致，
   唯一波动是 `mlp_ensemble.train_seconds`（墙钟遥测，非分析数字）。
 
+## 外部对照（已发表数字，核过原文）
+
+完整对照与逐条口径差异见 [`docs/external_baselines.md`](docs/external_baselines.md)
+（2026-11-18 逐条抓取原文核对）。要点：
+
+- **同任务发表最佳**：TAPE 论文 Table 2 荧光列 test Spearman——预训练 Transformer（38M，端到端微调）**0.68**、
+  无预训练 0.22、one-hot 0.14。本仓库冻结 650M 嵌入 + 岭回归 **+0.630** 是同任务、不同协议、
+  长度过滤子集上的量级参照，不能写成"复现/超过 TAPE 最佳"。
+- **"ESM-1v/ESM2 论文的 FLU 数字"不存在**：ESM-1v 用 41 个 DMS（其 FLU 前缀是流感蛋白，非 GFP 任务），
+  ESM2 论文正文无荧光表——两篇的专项数字本仓库一律不引用，引用其跨任务均值时必须注明非同任务。
+- **打分口径有文献先例**：ESM-1v 附录（Table 5）已证 masked marginals 优于 wildtype marginals；
+  本仓库把这一方向推到单一荧光任务上的"负排序 vs +0.031"，口径差异见文档 §6。
+- ProteinGym Table 2 的 ESM2-15B 0.401 等是**跨 217 assay 均值**，不与单任务数字并表；其表中无 SaProt。
+
 ## 环境
 
 - Python 3.13；依赖见 `requirements.txt`（torch 需从 cu124 官方索引安装）

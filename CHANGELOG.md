@@ -7,7 +7,8 @@
 ## [Unreleased]
 
 - 计划：标注量学习曲线（ridge/MLP 头 × 10%–100% 训练数据 × 全 seed，bootstrap CI）
-- 计划：外部对照表（TAPE / ESM-1v / ESM2 论文公布数字，逐条带出处与口径差异）
+- 2026-11-18 新增 `docs/external_baselines.md`：TAPE / ESM-1v / ESM2 / ProteinGym 原文数字
+  逐条带表号核对，含口径差异清单与"不可引用项"声明；README 加「外部对照」节
 
 ## [v1.0] - 2026-11-18
 
