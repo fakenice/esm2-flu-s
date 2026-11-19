@@ -21,7 +21,10 @@ Protocol (identical to analyze.py in every other respect):
 Control check (self-imposed): the 100% fraction must reproduce the
 metrics.json headline (ridge and mlp_mean5seed). The ridge line is exact
 (deterministic alpha selection + identical seeds); the MLP line is compared
-with a tolerance because torch on GPU is not bit-reproducible run to run.
+within a tolerance because torch on GPU is not bit-reproducible run to run --
+but the tolerance is derived from the seed-to-seed scatter measured in this
+same run (2 x sd over the 5 seeds at 100%), not hand-set, so it can never grow
+to the size of the ridge-minus-MLP gap it is supposed to leave interpretable.
 If the control fails, this script refuses to write the curve.
 
 Inputs:  data/processed/flu_*.csv, results/embed/esm2_650M/*.npy, results/metrics.json
@@ -48,7 +51,8 @@ FIGS = ROOT / "results" / "figures"
 
 FRACTIONS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 SUBSET_SEED = 42          # design constant, fixed before looking at any result
-MLP_TOLERANCE = 0.01      # GPU non-reproducibility allowance for the control
+MLP_TOLERANCE = 0.01      # absolute ceiling for the MLP control line
+MIN_MLP_TOLERANCE = 0.002  # never demand more precision than the gate can mean
 
 
 def main() -> None:
@@ -86,6 +90,10 @@ def main() -> None:
         preds = [mlp_head(Xs, ys, Xte, s)[0] for s in MLP_SEEDS]
         res_m: dict = {}
         row_m = score(f"mlp@{f:.0%}", np.mean(preds, axis=0), yte, res_m)
+        # per-seed Spearman, recorded so the MLP control tolerance below is measured
+        # rather than asserted: re-running the same 5-seed ensemble moves the mean
+        # only within the scatter the seeds themselves show.
+        seed_sp = [float(spearmanr(p, yte).statistic) for p in preds]
 
         rows.append({
             "fraction": f, "n_train": sizes[f],
@@ -94,18 +102,41 @@ def main() -> None:
             "ridge_alpha": alpha,
             "mlp_spearman": row_m["spearman"],
             "mlp_ci95": row_m["ci95"], "mlp_rmse": row_m["rmse"],
+            "mlp_seed_sd": round(float(np.std(seed_sp, ddof=1)), 4),
+            "mlp_seed_spread": round(max(seed_sp) - min(seed_sp), 4),
         })
 
     # --- control: the 100% row must reproduce metrics.json ---
     last = rows[-1]
+    # The MLP line keeps a tolerance (torch on GPU is not bit-reproducible), but the
+    # tolerance is no longer a bare constant: it is 2 x the measured seed scatter at
+    # the full-data fraction, capped by MLP_TOLERANCE and floored by
+    # MIN_MLP_TOLERANCE. That matters because the headline ridge-minus-MLP gap at
+    # 100% is itself small; a hand-set 0.01 allowance was nearly as large as the
+    # difference the README reports, so the gate could have passed while the claim
+    # was already swallowed. The derived value and the gap are both recorded.
+    seed_sd_100 = last["mlp_seed_sd"]
+    tol_mlp = min(MLP_TOLERANCE, max(2 * seed_sd_100, MIN_MLP_TOLERANCE))
+    mlp_dev = abs(metrics["mlp_mean5seed"]["spearman"] - last["mlp_spearman"])
+    gap_100 = last["ridge_spearman"] - last["mlp_spearman"]
     ctrl = {
         "ridge_expected": metrics["ridge"]["spearman"],
         "ridge_at_100pct": last["ridge_spearman"],
         "mlp_expected": metrics["mlp_mean5seed"]["spearman"],
         "mlp_at_100pct": last["mlp_spearman"],
+        "mlp_seed_sd_at_100pct": seed_sd_100,
+        "mlp_seed_spread_at_100pct": last["mlp_seed_spread"],
+        "mlp_tolerance_used": round(tol_mlp, 4),
+        "mlp_tolerance_rule": ("min(0.01, max(2 * seed sd at 100%, 0.002)) -- derived "
+                               "from measured seed scatter, not hand-set"),
+        "mlp_deviation": round(mlp_dev, 4),
+        "headline_ridge_minus_mlp_at_100pct": round(gap_100, 4),
+        # the point of deriving the tolerance: the gate must stay far smaller than the
+        # effect the README reports, otherwise passing it would say nothing.
+        "tolerance_vs_headline_gap": round(tol_mlp / gap_100, 4) if gap_100 else None,
     }
     ctrl["ridge_ok"] = abs(ctrl["ridge_expected"] - ctrl["ridge_at_100pct"]) < 1e-4
-    ctrl["mlp_ok"] = abs(ctrl["mlp_expected"] - ctrl["mlp_at_100pct"]) <= MLP_TOLERANCE
+    ctrl["mlp_ok"] = abs(ctrl["mlp_expected"] - ctrl["mlp_at_100pct"]) <= tol_mlp
     ctrl["pass"] = ctrl["ridge_ok"] and ctrl["mlp_ok"]
     print("\ncontrol vs metrics.json:", json.dumps(ctrl, indent=2))
     if not ctrl["pass"]:
@@ -119,7 +150,9 @@ def main() -> None:
             "ridge": f"alpha re-selected on valid over {list(RIDGE_ALPHAS)} at every fraction",
             "mlp": f"mean of {MLP_SEEDS} seeds, analyze.mlp_head defaults",
             "ci": "1000-resample bootstrap percentile CI, seed 0 (analyze.score)",
-            "control": f"100% row vs metrics.json; ridge exact (<1e-4), mlp within {MLP_TOLERANCE}",
+            "control": ("100% row vs metrics.json; ridge exact (<1e-4); mlp within "
+                        "min(0.01, max(2 * measured seed sd at 100%, 0.002)) -- see "
+                        "control.mlp_tolerance_used"),
         },
         "control": ctrl,
         "curve": rows,

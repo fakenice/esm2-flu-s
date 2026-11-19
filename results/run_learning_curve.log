@@ -95,6 +95,13 @@ control vs metrics.json: {
   "ridge_at_100pct": 0.6297,
   "mlp_expected": 0.6166,
   "mlp_at_100pct": 0.6161,
+  "mlp_seed_sd_at_100pct": 0.0033,
+  "mlp_seed_spread_at_100pct": 0.0075,
+  "mlp_tolerance_used": 0.0066,
+  "mlp_tolerance_rule": "min(0.01, max(2 * seed sd at 100%, 0.002)) -- derived from measured seed scatter, not hand-set",
+  "mlp_deviation": 0.0005,
+  "headline_ridge_minus_mlp_at_100pct": 0.0136,
+  "tolerance_vs_headline_gap": 0.4853,
   "ridge_ok": true,
   "mlp_ok": true,
   "pass": true

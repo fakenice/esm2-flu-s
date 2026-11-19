@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+- 2026-11-19 E5 控制门改为派生容差：MLP 的 100% 档复现门从写死 0.01 改为
+  `min(0.01, max(2 × seed sd at 100%, 0.002))`（本次 2×0.0033 = 0.0066），并把逐档
+  `mlp_seed_sd` / `mlp_seed_spread` 与 `control.tolerance_vs_headline_gap`（0.4853）
+  一起落盘——写死 0.01 时门禁与 headline 的 ridge−MLP 差 0.0136 几乎同宽，通过不承载信息。
+  重跑全曲线通过控制（ridge +0.6297 精确、MLP +0.6161 vs 报告 +0.6166 差 0.0005），
+  且 10 档原有列（含 CI 与 RMSE）与已提交版本逐字符相同、仅新增两列——本次重跑没有移动任何曲线数值；同步 README E5 节的控制叙述，`一页结论.md` 补 E5 节、复现步骤与
+  「一半标注量就够」的不可写边界，`docs/DECISIONS.md` 追加决定 11–12。
+  上一行（2026-11-18）里的「MLP 容差 0.01」保留为当时状态的记录，不回改。
 - 2026-11-18 E5：标注量学习曲线 `src/learning_curve.py`——ridge/MLP × 嵌套 10 档
   （10%–100%，rng seed 42 单次置换）× 与 analyze.py 同一头协议；100% 档对
   `metrics.json` 的复现断言内置为控制门（ridge 精确、MLP 容差 0.01），不达即拒写；

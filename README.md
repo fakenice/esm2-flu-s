@@ -104,9 +104,14 @@ ESM2-650M / ESM2-35M / SaProt-35M-seqOnly / ProtBERT-BFD，见 `results/model_co
 问题：headline（ridge +0.630 / MLP +0.617）是不是被 train split 的标注量卡住？
 曲线由 `src/learning_curve.py` 生成，头协议与 `analyze.py` 完全对齐（同 alpha 网格、
 同 5 seeds、同 CI 口径）；子集是 rng seed 42 单次置换的 10 档**嵌套**分数（10%–100%）。
-控制内置：100% 档必须复现 `metrics.json`，否则脚本拒绝写产物——实测 ridge 精确相等
-（确定性 alpha 选择），MLP 五 seed 均值 +0.6161 vs 报告 +0.6166（差 0.0005，
-GPU 不可位复现容差 0.01 内）。
+控制内置：100% 档必须复现 `metrics.json`，否则脚本拒绝写产物。实测 ridge 精确相等
+（确定性 alpha 选择 + 同种子）；MLP 五 seed 均值 +0.6161 vs 报告 +0.6166，差 0.0005。
+MLP 那条容差不再是手写的 0.01，而是由本次实测的 seed 离散度推出：
+`min(0.01, max(2 × seed sd, 0.002))`，实测 = 2 × 0.0033 = **0.0066**（100% 档 5 seed
+极差 0.0075，与本文前面报的 0.007 同量级）。这个数是关键而不是装饰：headline 的
+ridge−MLP 差只有 0.0136，若门禁仍写死 0.01，「通过控制」与「结论本身」几乎同宽，
+通过与否不再承载信息；派生后容差是 headline 差值的 **0.49 倍**（`control.tolerance_vs_headline_gap`），
+控制行与结论行才各自有意义。控制失败时脚本直接 `SystemExit`，不写任何产物。
 
 ![标注量学习曲线](results/figures/fig5_learning_curve.png)
 
