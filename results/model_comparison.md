@@ -12,7 +12,7 @@
 
 ## 判读（数据驱动，措辞随重跑自动更新）
 
-- 线性头排序（ridge）：esm2_650M > protbert_bfd > esm2_35M > saprot_35m_seqonly。相邻名次是否可区分要看 CI 是否重叠，不能只看点估计。
+- 线性头排序（ridge）：esm2_650M > protbert_bfd > esm2_35M > saprot_35m_seqonly。这是点估计排序；同一测试集上名次差异应做配对差值检验，不能用边际 CI 重叠代替。
 - 零样本 WT-marginal 排序：saprot_35m_seqonly > esm2_35M > protbert_bfd > esm2_650M；所有模型同一口径（Σ log p(mt)−log p(wt)，无掩蔽），该口径自带自洽偏差，主报告已量化（masked-marginal 与其 ρ 仅 +0.309）。
 - `esm2_650M` 零样本为负（-0.3036，CI [-0.3144, -0.2924]）：CI 完全在 0 以下 ⇒ 该口径下排序方向系统性反转（不是抽样噪声）。
 - `esm2_35M` 零样本为负（-0.2997，CI [-0.3108, -0.2885]）：CI 完全在 0 以下 ⇒ 该口径下排序方向系统性反转（不是抽样噪声）。
@@ -24,5 +24,5 @@
 - SaProt 用的是作者发布的 seqOnly 变体（训练时 3Di 槽全为 `#`，模型卡：用于与 ESM-2 35M 对比）；普通 SaProt 35M/650M 的冻结嵌入按官方 README 需要真实 3Di 结构 token，本基准不提供结构输入。
 - ProtBERT 的输入 id 按发布 vocab.txt 行号手工构造（transformers 5 的 BertTokenizer 无 tokenizer.json 可复现路径，见 embed.py `ManualBertTok` 注释）；每残基一 token、[CLS]/[SEP] 位置与官方用法一致。
 - 单一蛋白（avGFP）、单一任务（FLU-S）、n=25,517：这是「同一协议下编码器快照的差别」，不是对模型通用强弱的一般结论。
-- ridge CI 两两重叠（这些模型对的排序差异不可区分）：esm2_650M vs protbert_bfd；esm2_35M vs saprot_35m_seqonly；esm2_35M vs protbert_bfd；saprot_35m_seqonly vs protbert_bfd
+- 以下模型对的 ridge 边际 CI 重叠（尚不能据此判定排序差异）：esm2_650M vs protbert_bfd；esm2_35M vs saprot_35m_seqonly；esm2_35M vs protbert_bfd；saprot_35m_seqonly vs protbert_bfd
 - 复跑：`python src/embed.py --model <tag>`（需 GPU）后 `python src/compare_models.py`（仅 CPU+sklearn/torch 头）。

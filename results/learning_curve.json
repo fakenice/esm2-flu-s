@@ -16,7 +16,7 @@
     "ridge": "alpha re-selected on valid over [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0, 3.0, 10.0, 100.0, 1000.0, 10000.0] at every fraction",
     "mlp": "mean of [0, 1, 2, 3, 4] seeds, analyze.mlp_head defaults",
     "ci": "1000-resample bootstrap percentile CI, seed 0 (analyze.score)",
-    "control": "100% row vs metrics.json; ridge exact (<1e-4); mlp within min(0.01, max(2 * measured seed sd at 100%, 0.002)) -- see control.mlp_tolerance_used"
+    "control": "100% rounded Spearman vs metrics.json; ridge deviation <1e-4; mlp within min(0.01, max(2 * measured seed sd at 100%, 0.002)) -- see control.mlp_tolerance_used"
   },
   "control": {
     "ridge_expected": 0.6297,
@@ -26,7 +26,7 @@
     "mlp_seed_sd_at_100pct": 0.0033,
     "mlp_seed_spread_at_100pct": 0.0075,
     "mlp_tolerance_used": 0.0066,
-    "mlp_tolerance_rule": "min(0.01, max(2 * seed sd at 100%, 0.002)) -- derived from measured seed scatter, not hand-set",
+    "mlp_tolerance_rule": "min(0.01, max(2 * seed sd at 100%, 0.002)) -- heuristic allowance; bounds and multiplier are design choices, not a CI",
     "mlp_deviation": 0.0005,
     "headline_ridge_minus_mlp_at_100pct": 0.0136,
     "tolerance_vs_headline_gap": 0.4853,

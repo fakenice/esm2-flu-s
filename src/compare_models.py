@@ -140,7 +140,7 @@ def main() -> None:
     zs_sorted = sorted(ORDER, key=lambda k: -res["models"][k]["zero_shot"]["spearman"])
     md += ["", "## 判读（数据驱动，措辞随重跑自动更新）", "",
            f"- 线性头排序（ridge）：{' > '.join(ridge_sorted)}。"
-           "相邻名次是否可区分要看 CI 是否重叠，不能只看点估计。",
+           "这是点估计排序；同一测试集上名次差异应做配对差值检验，不能用边际 CI 重叠代替。",
            f"- 零样本 WT-marginal 排序：{' > '.join(zs_sorted)}；所有模型同一口径（Σ log p(mt)−log p(wt)，无掩蔽），"
            "该口径自带自洽偏差，主报告已量化（masked-marginal 与其 ρ 仅 +0.309）。"]
     for model in ORDER:
@@ -162,7 +162,7 @@ def main() -> None:
            "见 embed.py `ManualBertTok` 注释）；每残基一 token、[CLS]/[SEP] 位置与官方用法一致。",
            "- 单一蛋白（avGFP）、单一任务（FLU-S）、n=25,517：这是「同一协议下编码器快照的差别」，"
            "不是对模型通用强弱的一般结论。",
-           f"- ridge CI 两两重叠（这些模型对的排序差异不可区分）：{'；'.join(ci_overlap)}" if ci_overlap
+           f"- 以下模型对的 ridge 边际 CI 重叠（尚不能据此判定排序差异）：{'；'.join(ci_overlap)}" if ci_overlap
            else "- 各模型 ridge CI 两两不重叠。",
            "- 复跑：`python src/embed.py --model <tag>`（需 GPU）后 `python src/compare_models.py`（仅 CPU+sklearn/torch 头）。"]
     (OUT / "model_comparison.md").write_text("\n".join(md) + "\n", encoding="utf-8", newline="\n")
